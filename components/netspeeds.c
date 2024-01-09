@@ -7,13 +7,38 @@
 
 #if defined(__linux__)
 	#include <stdint.h>
+	#include <stdio.h>
 
 	#define NET_RX_BYTES "/sys/class/net/%s/statistics/rx_bytes"
 	#define NET_TX_BYTES "/sys/class/net/%s/statistics/tx_bytes"
 
+	const char* get_interface() {
+		static char* interface = NULL;
+		if(interface != NULL) {
+			return interface;
+		}
+		FILE *fp;
+		int status;
+		char path[PATH_MAX];
+		fp = popen("route | grep '^default' | grep -o '[^ ]*$'", "r");
+		if (fp == NULL) {
+			return "";
+		}
+		fgets(path, PATH_MAX, fp);
+		status = pclose(fp);
+		const ssize_t pathLen = strlen(path);
+		interface = (char*)malloc(sizeof(char) * pathLen + 1);
+		strcpy(interface, path);
+		if(interface[pathLen - 1] == '\n') {
+			interface[pathLen - 1] = '\0';
+		}
+		interface[pathLen] = '\0';
+		return interface;
+	}
 	const char *
-	netspeed_rx(const char *interface)
+	netspeed_rx(const char *)
 	{
+		const char* interface = get_interface();
 		uintmax_t oldrxbytes;
 		static uintmax_t rxbytes;
 		extern const unsigned int interval;
@@ -33,8 +58,9 @@
 	}
 
 	const char *
-	netspeed_tx(const char *interface)
+	netspeed_tx(const char *)
 	{
+		const char* interface = get_interface();
 		uintmax_t oldtxbytes;
 		static uintmax_t txbytes;
 		extern const unsigned int interval;
