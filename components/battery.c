@@ -34,10 +34,10 @@
 			if(esnprintf(path, sizeof(path), POWER_SUPPLY_PATH, bat) >= 0 && access(path, F_OK) == 0) {
 				strcpy(battery_name, bat);
 				is_init = 1;
-				break;
+				return battery_name;
 			}
 		}
-		return battery_name;
+		return NULL;
 	}
 
 	static const char *
@@ -60,6 +60,9 @@
 	{
 		if(bat == NULL) {
 			bat = find_battery();
+		}
+		if(bat == NULL) {
+			return "na";
 		}
 		int cap_perc;
 		char path[PATH_MAX];
