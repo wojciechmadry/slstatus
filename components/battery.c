@@ -1,4 +1,5 @@
 /* See LICENSE file for copyright and license details. */
+#include <linux/limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,12 +14,31 @@
 	#include <stdint.h>
 	#include <unistd.h>
 
+	#define POWER_SUPPLY_PATH     "/sys/class/power_supply/%s"
 	#define POWER_SUPPLY_CAPACITY "/sys/class/power_supply/%s/capacity"
 	#define POWER_SUPPLY_STATUS   "/sys/class/power_supply/%s/status"
 	#define POWER_SUPPLY_CHARGE   "/sys/class/power_supply/%s/charge_now"
 	#define POWER_SUPPLY_ENERGY   "/sys/class/power_supply/%s/energy_now"
 	#define POWER_SUPPLY_CURRENT  "/sys/class/power_supply/%s/current_now"
 	#define POWER_SUPPLY_POWER    "/sys/class/power_supply/%s/power_now"
+
+	static const char* find_battery() {
+		static char battery_name[NAME_MAX];
+		static int is_init = 0;
+		if (is_init != 0) {
+			return battery_name;
+		}
+		char path[PATH_MAX];
+		for(int i = 0 ; i <= 9 ; ++i) {
+			char bat[] = {'B', 'A', 'T', i + '0' , '\0'};
+			if(esnprintf(path, sizeof(path), POWER_SUPPLY_PATH, bat) >= 0 && access(path, F_OK) == 0) {
+				strcpy(battery_name, bat);
+				is_init = 1;
+				return battery_name;
+			}
+		}
+		return NULL;
+	}
 
 	static const char *
 	pick(const char *bat, const char *f1, const char *f2, char *path,
@@ -38,6 +58,12 @@
 	const char *
 	battery_perc(const char *bat)
 	{
+		if(bat == NULL) {
+			bat = find_battery();
+		}
+		if(bat == NULL) {
+			return "na";
+		}
 		int cap_perc;
 		char path[PATH_MAX];
 
